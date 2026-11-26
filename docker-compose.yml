@@ -1,0 +1,79 @@
+# 小蜗 · 比奇堡租房 —— 一键起全套（应用 + MySQL + Redis）
+#
+# 本地试跑：   docker compose up -d --build      → http://127.0.0.1:8080
+# 服务器上：   把 WEB_PORT 改成 127.0.0.1:8080 只对反代开放（见 docs/部署指南.md）
+# 变量说明：   cp .env.production.example .env 后按需修改
+name: xiaowo
+
+services:
+  # ---------- 数据库 ----------
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-xiaowo}
+      MYSQL_USER: ${MYSQL_APP_USER:-xiaowo}
+      MYSQL_PASSWORD: ${MYSQL_APP_PASSWORD:-change-me-app}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      # 用 root 打 ping，避免「库还没建好、应用先连」的经典启动顺序问题
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # ---------- 缓存（可选增强：挂掉会自动降级到数据库） ----------
+  cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - cachedata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ---------- 应用 ----------
+  web:
+    build:
+      context: .
+      args:
+        # 前端 Key 在构建时打进 bundle，改了要重新 build
+        VITE_AMAP_KEY: ${VITE_AMAP_KEY:-}
+        VITE_AMAP_SECURITY: ${VITE_AMAP_SECURITY:-}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    environment:
+      DB_CLIENT: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_USER: ${MYSQL_APP_USER:-xiaowo}
+      DB_PASSWORD: ${MYSQL_APP_PASSWORD:-change-me-app}
+      DB_NAME: ${MYSQL_DATABASE:-xiaowo}
+      REDIS_URL: redis://cache:6379
+      HOST: 0.0.0.0
+      PORT: "3001"
+      # 线上填自己的域名，例如 https://xiaowo.example.com；留空 = 不限制跨域
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      # 挂在 Nginx / Caddy 后面时设为 true，限流才能拿到真实 IP
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      TZ: Asia/Shanghai
+    ports:
+      - "${WEB_PORT:-8080}:3001"
+
+volumes:
+  dbdata:
+  cachedata:
