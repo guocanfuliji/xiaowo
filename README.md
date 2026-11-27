@@ -4,6 +4,16 @@
 左侧彩色功能栏 + 顶部「图标 → 搜索 → 头像 → 个人中心」，22 个页面全部可用，所有操作真实落库。
 租房走「预约 → 签约 → 账单」，卖房走「挂牌 → 购房意向 → 卖家确认成交」。
 
+<p align="center">
+  <img src="docs/images/map.jpg" width="49%" alt="比奇堡地图找房：13 套房源的价格气泡，与右侧列表双向联动">
+  <img src="docs/images/houses.jpg" width="49%" alt="房源列表：卡片展示月租、户型、面积与房源标签">
+  <br>
+  <img src="docs/images/auction.jpg" width="49%" alt="拍卖详情：倒计时、当前最高价、出价记录与加价规则">
+  <img src="docs/images/messages.jpg" width="49%" alt="消息通知：出价被超越、账单提醒等实时推送">
+</p>
+
+<p align="center"><sub>地图找房 · 房源列表 · 拍卖详情 · 消息通知 —— 均为本地真实运行的实测截图</sub></p>
+
 ---
 
 ## 快速开始
