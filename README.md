@@ -1,7 +1,7 @@
 # 小蜗 · 比奇堡租房
 
 海绵宝宝主题的房屋**租售一体**全栈应用：Vue3 前端 + Express 后端 + MySQL / SQLite 数据库。
-左侧彩色功能栏 + 顶部「图标 → 搜索 → 头像 → 个人中心」，22 个页面全部可用，所有操作真实落库。
+左侧彩色功能栏 + 顶部「图标 → 搜索 → 头像 → 个人中心」，26 个页面全部可用，所有操作真实落库。
 租房走「预约 → 签约 → 账单」，卖房走「挂牌 → 购房意向 → 卖家确认成交」。
 
 <p align="center">
@@ -13,6 +13,29 @@
 </p>
 
 <p align="center"><sub>地图找房 · 房源列表 · 拍卖详情 · 消息通知 —— 均为本地真实运行的实测截图</sub></p>
+
+## 系统架构
+
+![系统架构](docs/images/architecture.png)
+
+几个刻意的取舍：
+
+- **数据层可换**：`mysql2` 与 `node:sqlite` 藏在同一套 `all / get / run / tx` 接口后面，改一行 `DB_CLIENT=sqlite` 就能切换，业务代码零改动 —— 没装 MySQL 的机器 `npm install && npm run dev:all` 也能直接跑起来。
+- **拍卖正确性交给数据库**：加价门槛直接编进 `UPDATE ... WHERE`（`当前价 + 最小加价 ≤ 出价` 且 `status = 'live'`），用 `affectedRows === 1` 判胜负，不做「先查再写」。Redis 锁只用来削峰，它挂了最多变慢，不会变错。
+- **读路径懒结算**：拍卖到点不靠定时器，任何一次读请求发现「已过截止时间且仍是进行中」就顺手结算（`UPDATE ... WHERE status = 'live'` 保证多实例不会重复结算、不会重复发通知）。不用挂 cron，也不怕漏。
+- **时钟以服务端为准**：详情接口返回 `serverNow`，前端算出本机偏差，每 30 秒静默对时一次。用户把系统时间调快两小时，倒计时也不会提前结束。
+
+## 更多页面
+
+<p align="center">
+  <img src="docs/images/sale.jpg" width="49%" alt="买房专区：在售二手房列表、筛选与成交均价">
+  <img src="docs/images/house.jpg" width="49%" alt="房源详情：hero 大图、设施标签、房东卡与位置地图">
+  <br>
+  <img src="docs/images/auction-list.jpg" width="49%" alt="法拍房列表：倒计时、当前最高价与领先者">
+  <img src="docs/images/community.jpg" width="49%" alt="邻里社区：按街区筛选的帖子与热度排序">
+</p>
+
+<p align="center"><sub>买房专区 · 房源详情 · 法拍房 · 邻里社区</sub></p>
 
 ---
 
